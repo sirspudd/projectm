@@ -1,5 +1,5 @@
 /**
- * projectM-qt -- Qt4 based projectM GUI 
+ * projectM-qt -- Qt4 based projectM GUI
  * Copyright (C)2003-2004 projectM Team
  *
  * This library is free software; you can redistribute it and/or
@@ -42,13 +42,17 @@ class QProjectMWidget : public QGLWidget
 		QProjectMWidget ( const std::string & config_file, QWidget * parent, QMutex * audioMutex = 0 )
 				: QGLWidget ( parent ), m_config_file ( config_file ), m_projectM ( 0 ), m_audioMutex ( audioMutex ), m_mouseTimer ( 0 )
 		{
+            QTimer *presetChangeTimer = new QTimer;
+            presetChangeTimer->setInterval(60*1000);
+			connect ( presetChangeTimer, SIGNAL ( timeout() ), this, SLOT ( changePreset() ) );
+            presetChangeTimer->start();
 
 			m_mouseTimer = new QTimer ( this );
 
 			QSettings settings("projectM", "qprojectM");
-			mouseHideTimeoutSeconds = 
+			mouseHideTimeoutSeconds =
 				settings.value("MouseHideOnTimeout", MOUSE_VISIBLE_TIMEOUT_MS/1000).toInt();
-			
+
 			if (mouseHideTimeoutSeconds > 0)
 				m_mouseTimer->start ( mouseHideTimeoutSeconds * 1000);
 
@@ -162,6 +166,10 @@ class QProjectMWidget : public QGLWidget
 		void shuffleEnabledChanged ( bool isShuffleEnabled );
 
 	private slots:
+		void changePreset() {
+            qprojectM()->selectRandom(false);
+        }
+
 		void hideMouse()
 		{
 			if ( this->underMouse() && this->hasFocus() )
@@ -211,12 +219,12 @@ class QProjectMWidget : public QGLWidget
 						pkey =  PROJECTM_K_R;
 					else
 						pkey =  PROJECTM_K_r;
-					break;				
+					break;
 				case Qt::Key_L:
 					pkey =  PROJECTM_K_l;
 					ignore = true;
 					break;
-				case Qt::Key_N:	
+				case Qt::Key_N:
 					if (e->modifiers() & Qt::ShiftModifier)
 						pkey =  PROJECTM_K_N;
 					else
