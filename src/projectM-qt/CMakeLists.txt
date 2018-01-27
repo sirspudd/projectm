@@ -50,8 +50,6 @@ ADD_DEFINITIONS(-DQT_NO_DEBUG)
 
 # the variable "projectM-qt_SRCS" contains all .cpp files of this project
 set(projectM-qt_SRCS
-    qprojectm_mainwindow.cpp
-    qprojectm_mainwindow.hpp
     configfile.hpp configfile.cpp
     qpresetfiledialog.hpp
     qplaylistfiledialog.cpp
@@ -59,8 +57,6 @@ set(projectM-qt_SRCS
     qplaylistmodel.cpp
     qplaylistmodel.hpp
     qxmlplaylisthandler.hpp
-    qprojectmconfigdialog.cpp
-    qprojectmconfigdialog.hpp
     qplaylisttableview.hpp
     qpresettextedit.cpp
     qpresettextedit.hpp
@@ -72,11 +68,9 @@ set(projectM-qt_SRCS
 
 
 set(projectM-qt_MOC_HDRS
-    qprojectm_mainwindow.hpp
     qpresetfiledialog.hpp
     qplaylistfiledialog.hpp
     qplaylistmodel.hpp
-    qprojectmconfigdialog.hpp
     qplaylisttableview.hpp
     qpresettextedit.hpp
     qpreseteditordialog.hpp
@@ -85,8 +79,6 @@ set(projectM-qt_MOC_HDRS
 )
 
 set(projectM-qt_UIS
-    qprojectm_mainwindow.ui
-    qprojectmconfigdialog.ui
     qpreseteditordialog.ui
 )
 
@@ -130,7 +122,6 @@ include_directories(${PROJECTM_INCLUDE} ${Qt5Widgets_INCLUDE_DIR} ${Qt5OpenGL_IN
 # link the "qprojectM" target against the Qt libraries. which libraries exactly, is defined by the "include(${QT_USE_FILE})" line above, which sets up this variable.
 target_link_libraries(projectM-qt projectM GLEW GL ${Qt5Widgets_LIBRARIES} ${Qt5OpenGL_LIBRARIES})
 
-install(FILES qprojectm_mainwindow.hpp DESTINATION include/libprojectM-qt)
 install(TARGETS projectM-qt DESTINATION lib)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libprojectM-qt.pc" DESTINATION lib/pkgconfig)
 install(FILES "images/icons/prjm16-transparent.svg" DESTINATION	${CMAKE_INSTALL_PREFIX}/share/pixmaps)
