@@ -179,18 +179,7 @@ void projectM::readConfig (const std::string & configFile )
     ( "Smooth Preset Duration", config.read<int>("Smooth Transition Duration", 10));
     _settings.presetDuration = config.read<int> ( "Preset Duration", 15 );
 
-    #ifdef LINUX
-    _settings.presetURL = config.read<string> ( "Preset Path", CMAKE_INSTALL_PREFIX "/share/projectM/presets" );
-    #endif
-
-    #ifdef __APPLE__
-    /// @bug awful hardcoded hack- need to add intelligence to cmake wrt bundling - carm
-    _settings.presetURL = config.read<string> ( "Preset Path", "../Resources/presets" );
-    #endif
-
-    #ifdef WIN32
-    _settings.presetURL = config.read<string> ( "Preset Path", CMAKE_INSTALL_PREFIX "/share/projectM/presets" );
-    #endif
+    _settings.presetURL = "/usr/share/projectM/presets/";
 
     #ifdef __APPLE__
     _settings.titleFontURL = config.read<string>
@@ -253,7 +242,7 @@ void projectM::readSettings (const Settings & settings )
     _settings.presetDuration = settings.presetDuration;
     _settings.softCutRatingsEnabled = settings.softCutRatingsEnabled;
 
-    _settings.presetURL = settings.presetURL;
+    _settings.presetURL = "/usr/share/projectM/presets/";
     _settings.titleFontURL = settings.titleFontURL;
     _settings.menuFontURL =  settings.menuFontURL;
     _settings.shuffleEnabled = settings.shuffleEnabled;
@@ -569,7 +558,7 @@ static void *thread_callback(void *prjm) {
         /* Set the seed to the current time in seconds */
         srand ( time ( NULL ) );
 
-        std::string url = (m_flags & FLAG_DISABLE_PLAYLIST_LOAD) ? std::string() : settings().presetURL;
+        std::string url = "/usr/share/projectM/presets/";
 
         if ( ( m_presetLoader = new PresetLoader ( gx, gy, url) ) == 0 )
         {
