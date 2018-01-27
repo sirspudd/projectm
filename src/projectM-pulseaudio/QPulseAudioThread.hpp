@@ -36,20 +36,18 @@ extern "C"
 #include <pulse/pulseaudio.h>
 }
 
-#include "qprojectm_mainwindow.hpp"
-			 
+class QProjectMWidget;
 
 class QPulseAudioThread : public QThread
-{	
+{
 	Q_OBJECT
-	public:		
+	public:
 		typedef QHash<int, QString> SourceContainer;
 		QPulseAudioThread () {}
-		QPulseAudioThread
-				(int _argc, char **_argv, QProjectM_MainWindow * qprojectM_MainWindow);
+        QPulseAudioThread(int _argc, char **_argv, QProjectMWidget *p);
 		virtual ~QPulseAudioThread();
 		void run();
-		
+
 		QMutex * mutex();
 
 		inline const SourceContainer & devices() {
@@ -62,9 +60,9 @@ class QPulseAudioThread : public QThread
 		}
 
 	public slots:
-		
+
 		void cork();
-		
+
 		inline void insertSource(int index, const QString & name) {
 			s_sourceList[index] = name;
 		}
@@ -77,12 +75,12 @@ class QPulseAudioThread : public QThread
 		void deviceChanged();
 		void threadCleanedUp();
 	private:
-	
-		QProjectM_MainWindow * m_qprojectM_MainWindow;
+        static QProjectMWidget *pWidget;
+
 		static SourceContainer::const_iterator readSettings();
 
 		static void reconnect(SourceContainer::const_iterator pos);
-		
+
 		static SourceContainer::const_iterator scanForPlaybackMonitor();
 		static void connectHelper (SourceContainer::const_iterator pos);
 		static void pulseQuit ( int ret );
@@ -100,14 +98,14 @@ class QPulseAudioThread : public QThread
 		static void pa_source_info_callback ( pa_context *c, const pa_source_info *i, int eol, void *userdata );
 		 static void subscribe_callback ( struct pa_context *c, enum pa_subscription_event_type t, uint32_t index, void *userdata );
 		static void time_event_callback ( pa_mainloop_api*m, pa_time_event *e, const struct timeval *tv, void *userdata );
-		
+
 		static void pa_stream_success_callback(pa_stream *s, int success, void *userdata);
-			
+
 		static QMutex * s_audioMutex;
 		static SourceContainer s_sourceList;
 		static SourceContainer::const_iterator s_sourcePosition;
 		int argc;
-		char ** argv;	
+		char ** argv;
 		static pa_context *context;
 		static pa_stream *stream;
 		static pa_mainloop_api *mainloop_api;
@@ -118,7 +116,6 @@ class QPulseAudioThread : public QThread
 		static pa_io_event * stdio_event;
 		static char * server;
 		static char * stream_name, *client_name, *device;
-		static QProjectM_MainWindow ** s_qprojectM_MainWindowPtr; 
 
 		static int verbose;
 
@@ -127,7 +124,7 @@ class QPulseAudioThread : public QThread
 		static pa_channel_map channel_map;
 		static int channel_map_set;;
 		static pa_sample_spec sample_spec ;
-				
-				
+
+
 };
 #endif

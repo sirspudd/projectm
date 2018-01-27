@@ -4,12 +4,13 @@
 #include <QString>
 #include <QVector>
 
+#include <qprojectmwidget.hpp>
 
 /* Adopted from PulseAudio by carmelo.piccione+projectm@gmail.com
 
   Copyright 2004-2006 Lennart Poettering
   Copyright 2006 Pierre Ossman <ossman@cendio.se> for Cendio AB
-  
+
 
 ***/
 
@@ -28,8 +29,6 @@
 #include <fcntl.h>
 
 #include <QSettings>
-
-#include "qprojectm_mainwindow.hpp"
 
 #define TIME_EVENT_USEC 50000
 
@@ -61,21 +60,17 @@
 
 QPulseAudioThread::SourceContainer QPulseAudioThread::s_sourceList;
 QPulseAudioThread::SourceContainer::const_iterator QPulseAudioThread::s_sourcePosition;
- 
-QProjectM_MainWindow ** QPulseAudioThread::s_qprojectM_MainWindowPtr = 0;
- 
-QPulseAudioThread::QPulseAudioThread ( int _argc, char **_argv, QProjectM_MainWindow * mainWindow ) : QThread ( 0 ), argc ( _argc ), argv ( _argv ),  m_qprojectM_MainWindow (mainWindow)
+
+QProjectMWidget *QPulseAudioThread::pWidget = 0;
+
+QPulseAudioThread::QPulseAudioThread ( int _argc, char **_argv, QProjectMWidget *p) : QThread ( 0 ), argc ( _argc ), argv ( _argv )
 {
-	s_qprojectM_MainWindowPtr = new QProjectM_MainWindow*;
-	*s_qprojectM_MainWindowPtr = m_qprojectM_MainWindow;
+     QPulseAudioThread::pWidget = p;
 }
 
 
 QPulseAudioThread::~QPulseAudioThread()
 {
-	if (s_qprojectM_MainWindowPtr)
-		delete(s_qprojectM_MainWindowPtr);
-	s_qprojectM_MainWindowPtr = 0;
 }
 
 QPulseAudioThread::SourceContainer::const_iterator QPulseAudioThread::readSettings()
@@ -92,9 +87,9 @@ QPulseAudioThread::SourceContainer::const_iterator QPulseAudioThread::readSettin
 		return s_sourceList.end();
 	} else {
 
-		QString deviceName = settings.value("pulseAudioDeviceName", QString()).toString();		
+		QString deviceName = settings.value("pulseAudioDeviceName", QString()).toString();
 		qDebug() << "device name is " << deviceName;
-		for (SourceContainer::const_iterator pos = s_sourceList.begin(); 
+		for (SourceContainer::const_iterator pos = s_sourceList.begin();
 				   pos != s_sourceList.end(); ++pos) {
 			if (*pos == deviceName) {
 				return pos;
@@ -106,7 +101,7 @@ QPulseAudioThread::SourceContainer::const_iterator QPulseAudioThread::readSettin
 
 void QPulseAudioThread::cleanup()
 {
-	
+
 	pa_threaded_mainloop_stop ( mainloop );
 
 	if ( stream )
@@ -157,7 +152,7 @@ void QPulseAudioThread::cleanup()
 }
 
 void QPulseAudioThread::connectHelper (SourceContainer::const_iterator pos)
-{	
+{
 	Q_ASSERT(stream);
 	pa_stream_flags_t flags = ( pa_stream_flags_t ) 0;
 //	qDebug() << "start2 ";
@@ -165,8 +160,8 @@ void QPulseAudioThread::connectHelper (SourceContainer::const_iterator pos)
 	qDebug() << "connectHelper: " << *pos;
 	int r;
 	if ( ( ( r = pa_stream_connect_record (stream, (*pos).toStdString().c_str(), NULL, flags ) ) ) < 0 )
-	{				
-		fprintf ( stderr, "pa_stream_connect_record() failed: %s\n", pa_strerror ( pa_context_errno ( context ) ) );		
+	{
+		fprintf ( stderr, "pa_stream_connect_record() failed: %s\n", pa_strerror ( pa_context_errno ( context ) ) );
 	}
 
 
@@ -181,19 +176,19 @@ QPulseAudioThread::SourceContainer::const_iterator QPulseAudioThread::scanForPla
 			return pos;
 		}
 	}
-	
+
 	return s_sourceList.end();
-	
+
 }
 
 void QPulseAudioThread::connectDevice ( const QModelIndex & index )
-{	
-	
+{
+
 	if (index.isValid())
 		reconnect(s_sourceList.begin() + index.row());
 	else
 		reconnect(s_sourceList.end());
-	
+
 	emit(deviceChanged());
 }
 
@@ -202,25 +197,25 @@ void QPulseAudioThread::reconnect(SourceContainer::const_iterator pos = s_source
 
 	if (s_sourceList.empty())
 			return;
-	
+
 	if (pos != s_sourceList.end()) {
 		s_sourcePosition = pos;
 		qDebug() << "reconnecting with" << *pos;
 	}
-	else 
+	else
 		s_sourcePosition = scanForPlaybackMonitor();
 
 	if (s_sourcePosition == s_sourceList.end()) {
 		s_sourcePosition = s_sourceList.begin();
 	}
-				
+
 	if (stream && (pa_stream_get_state(stream) == PA_STREAM_READY))
 	{
-		//qDebug() << "disconnect";			
+		//qDebug() << "disconnect";
 		pa_stream_disconnect ( stream );
 	//	pa_stream_unref(stream);
 		//qDebug() << "* return *";
-		
+
 	}
 
 	if ( ! ( stream = pa_stream_new ( context, stream_name, &sample_spec, channel_map_set ? &channel_map : NULL ) ) )
@@ -229,7 +224,7 @@ void QPulseAudioThread::reconnect(SourceContainer::const_iterator pos = s_source
 				return;
 	}
 
-	pa_stream_set_state_callback 
+	pa_stream_set_state_callback
 		( stream, stream_state_callback, &s_sourceList );
 	pa_stream_set_read_callback ( stream, stream_read_callback, &s_sourceList );
  	pa_stream_set_moved_callback(stream, stream_moved_callback, &s_sourceList );
@@ -256,18 +251,18 @@ case PA_STREAM_TERMINATED:// 	The stream has been terminated cleanly.
 
 
 void QPulseAudioThread::pa_stream_success_callback(pa_stream *s, int success, void * data) {
-	
+
 	static bool pausedFlag = true;
-	
+
 	if (pausedFlag)
 		qDebug() << "pause";
 	else {
-		qDebug() << "play";		
+		qDebug() << "play";
 	}
-			
-	
+
+
 	pausedFlag = !pausedFlag;
-	
+
 	// necessarily static
 	// can do pulse stuff here...
 }
@@ -277,26 +272,26 @@ QMutex * QPulseAudioThread::mutex() {
 return s_audioMutex;
 }
 
-void QPulseAudioThread::cork() 
+void QPulseAudioThread::cork()
 {
 	int b = 0;
-			
-	pa_operation* op = 
+
+	pa_operation* op =
 			pa_stream_cork(stream, b, pa_stream_success_callback, this);
-			
+
 	if (op)
-		pa_operation_unref(op);	
+		pa_operation_unref(op);
 	else
-		qDebug() << "cork operation null";	
+		qDebug() << "cork operation null";
 }
-		
-		
+
+
 /* A shortcut for terminating the application */
 void QPulseAudioThread::pulseQuit ( int ret )
 {
 	assert ( mainloop_api );
 	mainloop_api->quit ( mainloop_api, ret );
-	
+
 }
 
 
@@ -315,11 +310,8 @@ void QPulseAudioThread::stream_read_callback ( pa_stream *s, size_t length, void
 		pulseQuit ( 1 );
 		return
 ;
-	}
+        }
 
-	if ((!s_qprojectM_MainWindowPtr) || (!*s_qprojectM_MainWindowPtr))
-		return;
-			
 	assert ( data && length );
 
 	if ( buffer )
@@ -332,10 +324,8 @@ void QPulseAudioThread::stream_read_callback ( pa_stream *s, size_t length, void
 		}
 		return;
 	}
+        pWidget->qprojectM()->pcm()->addPCMfloat((float*)data, length / ( sizeof ( float ) ) );
 
-	(*s_qprojectM_MainWindowPtr)->addPCM( (float*)data, length / ( sizeof ( float ) ) );
-	
-	
 	//buffer = ( float* ) pa_xmalloc ( buffer_length = length );
 	//memcpy ( buffer, data, length );
 	buffer_index = 0;
@@ -372,7 +362,7 @@ void QPulseAudioThread::stream_state_callback ( pa_stream *s, void *userdata )
 				{
 					fprintf(stderr, "Buffer metrics: maxlength=%u, fragsize=%u\n", a->maxlength, a->fragsize);
 				}
-			}	
+			}
 			break;
 		case PA_STREAM_FAILED:
 			qDebug() << "FAILED";
@@ -405,7 +395,7 @@ void QPulseAudioThread::context_state_callback ( pa_context *c, void *userdata )
 		case PA_CONTEXT_READY:
 		{
 			int r;
-		
+
 			assert ( c && !stream );
 
 			if ( verbose )
@@ -419,7 +409,7 @@ void QPulseAudioThread::context_state_callback ( pa_context *c, void *userdata )
 */
 			initialize_callbacks ( ( QPulseAudioThread * ) userdata );
 
-//			pa_stream_set_state_callback 
+//			pa_stream_set_state_callback
 //				( stream, stream_state_callback, userdata );
 //			pa_stream_set_read_callback ( stream, stream_read_callback, userdata );
  //			pa_stream_set_moved_callback(stream, stream_moved_callback, userdata );
@@ -452,7 +442,7 @@ void QPulseAudioThread::context_drain_complete ( pa_context*c, void *userdata )
 /* Some data may be written to STDOUT */
 void QPulseAudioThread::stdout_callback ( pa_mainloop_api*a, pa_io_event *e, int fd, pa_io_event_flags_t f, void *userdata )
 {
-	
+
 	assert ( a == mainloop_api && e && stdio_event == e );
 
 	if ( !buffer )
@@ -462,29 +452,26 @@ void QPulseAudioThread::stdout_callback ( pa_mainloop_api*a, pa_io_event *e, int
 	}
 	else
 	{
-		
-		
+
+
 		//s_audioMutex->lock();
-		QProjectM_MainWindow ** qprojectM_MainWindowPtr = static_cast<QProjectM_MainWindow**> ( userdata ); 
-		QProjectM_MainWindow * qprojectM_MainWindow = * qprojectM_MainWindowPtr;
-		
+
 		//QProjectM * prjm = (*qprojectMWidgetPtr)->qprojectM();
-		
-		//if (prjm == 0) {			
+
+		//if (prjm == 0) {
 		//	s_audioMutex->unlock();
 		//	return;
 		//}
-		
+
 		//Q_ASSERT(prjm);
 		//Q_ASSERT(prjm->pcm());
 		Q_ASSERT(buffer);
 
-		qprojectM_MainWindow->addPCM
-				( buffer+buffer_index, buffer_length / ( sizeof ( float ) ) );
+                pWidget->qprojectM()->pcm()->addPCMfloat( buffer+buffer_index, buffer_length / ( sizeof ( float ) ) );
 		//s_audioMutex->unlock();
 		//qDebug() << "UNLOCK: add pcm";
 		//assert ( buffer_length );
-		
+
 		pa_xfree ( buffer );
 		buffer = NULL;
 		buffer_length = buffer_index = 0;
@@ -496,7 +483,7 @@ void QPulseAudioThread::exit_signal_callback ( pa_mainloop_api*m, pa_signal_even
 {
 	if ( verbose )
 		fprintf ( stderr, "Got signal, exiting.\n" );
-		
+
 	pulseQuit ( 0 );
 }
 
@@ -547,7 +534,7 @@ void QPulseAudioThread::pa_source_info_callback ( pa_context *c, const pa_source
 	}
 
 	else
-	{		
+	{
 		assert ( eol );
 
 		SourceContainer::const_iterator pos = readSettings();
@@ -564,7 +551,7 @@ void QPulseAudioThread::subscribe_callback ( struct pa_context *c, enum pa_subsc
 	{
 		case PA_SUBSCRIPTION_EVENT_SINK:
 			break;
-		case PA_SUBSCRIPTION_EVENT_SOURCE: 
+		case PA_SUBSCRIPTION_EVENT_SOURCE:
 		{
 			if ( ( t & PA_SUBSCRIPTION_EVENT_TYPE_MASK ) == PA_SUBSCRIPTION_EVENT_REMOVE ) {
 				qDebug() << "Warning! untested code. email carmelo.piccione@gmail.com if it explodes";
@@ -574,7 +561,7 @@ void QPulseAudioThread::subscribe_callback ( struct pa_context *c, enum pa_subsc
 					reconnect();
 					thread->deviceChanged();
 				} else {
-					s_sourceList.remove(index);				
+					s_sourceList.remove(index);
 					thread->deviceChanged();
 				}
 			}

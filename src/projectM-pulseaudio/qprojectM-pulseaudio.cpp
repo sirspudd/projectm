@@ -47,7 +47,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <projectM.hpp>
-#include <qprojectm_mainwindow.hpp>
+#include <qprojectmwidget.hpp>
 #include <QApplication>
 #include <QtDebug>
 
@@ -120,32 +120,19 @@ int main ( int argc, char*argv[] )
 
 	QMutex audioMutex;
 
-	QProjectM_MainWindow * mainWindow = new QProjectM_MainWindow ( config_file, &audioMutex);
+	QProjectMWidget * mainWindow = new QProjectMWidget ( config_file, 0, &audioMutex);
 
-	QAction pulseAction("Pulse audio settings...", mainWindow);
+	QTimer *m_timer = new QTimer (0);
+	QObject::connect ( m_timer, SIGNAL ( timeout() ), mainWindow, SLOT ( updateGL() ) );
+    m_timer->start(0);
 
-
-      	mainWindow->registerSettingsAction(&pulseAction);
 	mainWindow->show();
 
 	QPulseAudioThread * pulseThread = new QPulseAudioThread(argc, argv, mainWindow);
 
 	pulseThread->start();
 
-	//QApplication::connect
-	//		(mainWindow->qprojectMWidget(), SIGNAL(projectM_Initialized(QProjectM *)), pulseThread, SLOT(setQrojectMWidget(QProjectMWidget*)));
-
-	QPulseAudioDeviceChooser devChooser(pulseThread, mainWindow);
-	QApplication::connect(&pulseAction, SIGNAL(triggered()), &devChooser, SLOT(open()));
-	//QApplication::connect(pulseThread, SIGNAL(threadCleanedUp()), mainWindow, SLOT(close()));
-
-	//QApplication::connect(mainWindow, SIGNAL(shuttingDown()), pulseThread, SLOT(cleanup()), Qt::DirectConnection);
  	int ret = app.exec();
-	if (pulseThread != 0)
-	  devChooser.writeSettings();
-
-	if (mainWindow)
-        	mainWindow->unregisterSettingsAction(&pulseAction);
 
 	pulseThread->cleanup();
 
